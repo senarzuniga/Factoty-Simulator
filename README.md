@@ -1,4 +1,4 @@
-# Factoty-Simulator
+# Factory-Simulator
 
 Digital Factory Simulator (DFS) for a corrugated cardboard plant that feeds a Digital Monitoring Platform.
 
@@ -18,13 +18,12 @@ This repository now includes a production-oriented relational schema for:
 
 ### Files
 
-- `/home/runner/work/Factoty-Simulator/Factoty-Simulator/database/schema.sql`
-- `/home/runner/work/Factoty-Simulator/Factoty-Simulator/database/seed.sql`
+- `database/schema.sql`
+- `database/seed.sql`
 
 ### Quick start (SQLite)
 
 ```bash
-cd /home/runner/work/Factoty-Simulator/Factoty-Simulator
 sqlite3 plant_simulator.db < database/schema.sql
 sqlite3 plant_simulator.db < database/seed.sql
 ```
