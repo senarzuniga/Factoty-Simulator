@@ -1,6 +1,6 @@
 try:
     import requests
-except Exception:  # pragma: no cover - optional runtime dependency
+except ImportError:  # pragma: no cover - optional runtime dependency
     requests = None
 
 
@@ -13,4 +13,3 @@ class StreamClient:
             raise RuntimeError("requests is required for HTTP streaming")
         response = requests.post(self.endpoint, json=event, timeout=2)
         response.raise_for_status()
-
