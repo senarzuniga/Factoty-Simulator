@@ -8,6 +8,7 @@ class CompanyProfileTests(unittest.TestCase):
         profile = load_company_profile()
 
         self.assertEqual(profile["id"], "factory_simulator_corrugados")
+        self.assertIsInstance(profile["machines"], int)
         self.assertGreater(profile["machines"], 0)
 
     def test_validate_profile_requires_fields(self):

@@ -2,6 +2,9 @@ import json
 from typing import Dict, List, Mapping, Optional
 from urllib import error, parse, request
 
+MAX_REFERENCE_SPEED_M_MIN = 300.0
+POWER_PER_SPEED_UNIT_KW = 0.08
+
 
 def infer_asset_type(machine_id: str) -> str:
     if machine_id.startswith("CORR") or "CORR" in machine_id:
@@ -45,14 +48,14 @@ def build_telemetry_payloads(
 
         speed = float(machine.get("speed", 0.0))
         health = float(machine.get("health", 0.0))
-        inferred_oee = min(1.0, max(0.0, (speed / 300.0) * health))
+        inferred_oee = min(1.0, max(0.0, (speed / MAX_REFERENCE_SPEED_M_MIN) * health))
 
         payloads.append(
             {
                 "asset_id": asset_id,
                 "temperature": float(machine.get("temp", 0.0)),
                 "vibration": float(machine.get("vibration", 0.0)),
-                "power_kw": round(speed * 0.08, 3),
+                "power_kw": round(speed * POWER_PER_SPEED_UNIT_KW, 3),
                 "oee": round(fallback_oee if fallback_oee is not None else inferred_oee, 3),
             }
         )
