@@ -7,7 +7,7 @@ POWER_PER_SPEED_UNIT_KW = 0.08
 
 
 def infer_asset_type(machine_id: str) -> str:
-    if machine_id.startswith("CORR") or "CORR" in machine_id:
+    if "CORR" in machine_id:
         return "Corrugator"
     if machine_id.startswith("FLEXO"):
         return "Flexo Printer"

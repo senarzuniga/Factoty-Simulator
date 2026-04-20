@@ -39,8 +39,12 @@ def validate_company_profile(profile: Mapping[str, Any]) -> Dict[str, Any]:
     for field, expected_type in REQUIRED_COMPANY_FIELDS.items():
         value = validated[field]
         if not isinstance(value, expected_type):
+            if isinstance(expected_type, tuple):
+                expected = " or ".join(t.__name__ for t in expected_type)
+            else:
+                expected = expected_type.__name__
             raise CompanyProfileError(
-                f"Field '{field}' must be of type {expected_type}, got {type(value)}"
+                f"Field '{field}' must be of type {expected}, got {type(value).__name__}"
             )
 
     if not 1 <= validated["maturity_level"] <= 5:
