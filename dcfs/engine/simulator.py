@@ -8,6 +8,7 @@ from dcfs.engine.time_engine import TimeEngine
 from dcfs.logic.failures import FailureEngine
 from dcfs.logic.kpis import KPIEngine
 
+# Callback signature: (state after step, published non-KPI events, computed KPI dict).
 StepCallback = Callable[[FactoryState, List[dict], dict], Any]
 
 

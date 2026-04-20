@@ -40,9 +40,6 @@ def build_telemetry_payloads(
     machine_to_asset_id: Mapping[str, str],
     fallback_oee: Optional[float] = None,
 ) -> List[dict]:
-    if MAX_REFERENCE_SPEED_M_MIN <= 0:
-        raise ValueError("MAX_REFERENCE_SPEED_M_MIN must be greater than zero")
-
     payloads = []
     for machine_id, machine in state.machines.items():
         asset_id = machine_to_asset_id.get(machine_id)
