@@ -27,3 +27,28 @@ This repository now includes a production-oriented relational schema for:
 sqlite3 plant_simulator.db < database/schema.sql
 sqlite3 plant_simulator.db < database/seed.sql
 ```
+
+## Company profile and Digital Ecosystem Platform connection
+
+This repository now includes a company profile compatible with the
+`Digital-Ecosystem-Platform` company definition:
+
+- `config/company_profile.json`
+
+The profile uses the same required fields as
+`Digital-Ecosystem-Platform/config/companies.json` (`id`, `name`, `country`,
+`sector`, `machines`, `employees`, `maturity_level`, `annual_revenue_m`,
+`installed_base_age_avg_years`, `active_contracts`, `logo_color`).
+
+Run the simulator and sync machine assets + telemetry into the DEP backend:
+
+```bash
+python main.py \
+  --mode real_time \
+  --dep-backend-url http://localhost:8000 \
+  --dep-token <DEP_BEARER_TOKEN>
+```
+
+Optional:
+
+- `--company-profile /absolute/path/to/company_profile.json` to override the default profile.
