@@ -1,43 +1,29 @@
-# Factoty-Simulator
+# Factory-Simulator
 
-Digital Factory Simulator (DFS) for a corrugated cardboard plant.
+Digital Factory Simulator (DFS) for a corrugated cardboard plant that feeds a Digital Monitoring Platform.
 
-## Setup
+## Database foundation for industrial digital ecosystem
+
+This repository now includes a production-oriented relational schema for:
+
+- Plant assets and machine constraints
+- Production orders and minute-level throughput
+- WIP buffers and converting queues
+- Telemetry, degradation and failures
+- Maintenance (preventive, predictive, corrective)
+- Spare parts, consumables and service requests
+- Energy and cost signals
+- Upgrades, consultant recommendations and KPI tracking
+- Event publishing to digital platforms
+
+### Files
+
+- `database/schema.sql`
+- `database/seed.sql`
+
+### Quick start (SQLite)
 
 ```bash
-python -m pip install -r requirements.txt
+sqlite3 plant_simulator.db < database/schema.sql
+sqlite3 plant_simulator.db < database/seed.sql
 ```
-
-## Run
-
-```bash
-python -m dcfs.main
-```
-
-or:
-
-```bash
-python main.py
-```
-
-## Run with Streamlit
-
-```bash
-python -m streamlit run streamlit_app.py
-```
-
-## Run in Visual Studio Code
-
-- Open **Run and Debug** and choose:
-  - **Streamlit App** (web UI)
-  - **Factory Simulator (real_time)** or **Factory Simulator (fast, 25 steps)**
-- Or use **Terminal → Run Task...**:
-  - **Install dependencies**
-  - **Run Streamlit App**
-
-## Behavior
-
-- Simulates plant state in real time (`real_time`, `fast`, `chaos`)
-- Generates production, energy, KPI, and failure events
-- Calculates OEE every step
-- Prints events to console through the event bus (extendable to HTTP/Kafka/WebSocket subscribers)
