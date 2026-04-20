@@ -2,9 +2,20 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
-DEFAULT_PROFILE_PATH = Path(__file__).resolve().parents[2] / "config" / "company_profile.json"
 MIN_MATURITY_LEVEL = 1
 MAX_MATURITY_LEVEL = 5
+
+
+def _default_profile_path() -> Path:
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        candidate = parent / "config" / "company_profile.json"
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError("Unable to locate config/company_profile.json from package path")
+
+
+DEFAULT_PROFILE_PATH = _default_profile_path()
 
 REQUIRED_COMPANY_FIELDS = {
     "id": str,

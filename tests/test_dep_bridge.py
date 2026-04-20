@@ -27,6 +27,16 @@ class DEPBridgePayloadTests(unittest.TestCase):
         self.assertEqual(payloads[0]["oee"], 0.82)
         self.assertIn("power_kw", payloads[0])
 
+    def test_build_telemetry_payloads_infers_oee_without_fallback(self):
+        state = FactoryState()
+        machine_to_asset_id = {"CORR-01": "asset-1"}
+
+        payloads = build_telemetry_payloads(state, machine_to_asset_id)
+
+        self.assertEqual(len(payloads), 1)
+        self.assertGreater(payloads[0]["oee"], 0.0)
+        self.assertLessEqual(payloads[0]["oee"], 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()
