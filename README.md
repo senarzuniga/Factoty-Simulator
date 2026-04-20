@@ -2,30 +2,34 @@
 
 A Digital Factory Simulator (DFS) that behaves like a real corrugated plant and continuously feeds your Digital Monitoring Platform.
 
-## Project Purpose
+## Installation
 
-The Factoty-Simulator is designed to simulate the operations of a corrugated plant, providing real-time data to enhance monitoring and decision-making processes.
+To install the Factory-Simulator, follow these steps:
+1. Clone the repository: `git clone https://github.com/yourusername/factory-simulator.git`
+2. Navigate into the directory: `cd factory-simulator`
+3. Install the necessary dependencies: `npm install`
 
-## Setup Instructions
+## Usage
 
-1. Clone the repository: `git clone <repository-url>`
-2. Navigate to the project directory: `cd Factoty-Simulator`
-3. Install dependencies: `npm install`
-4. Start the simulator: `npm start`
+To start the simulator, run:
+```
+npm start
+```
+This will launch the simulator and begin feeding data to your platform.
 
-## Usage Examples
-
-- To simulate a standard production run, use the command: `npm run simulate-standard`
-- For a custom simulation, modify the configuration file and run: `npm run simulate-custom`
-
-## Contribution Guidelines
+## Contribution
 
 We welcome contributions! Please follow these steps:
-
 1. Fork the repository.
-2. Create a new branch for your feature or bugfix.
-3. Make your changes and commit them with clear messages.
-4. Push your changes to your fork.
-5. Submit a pull request with a description of your changes.
+2. Create a new branch: `git checkout -b feature-name`
+3. Make your changes and commit them: `git commit -m 'Add new feature'`
+4. Push to the branch: `git push origin feature-name`
+5. Open a pull request.
 
-For major changes, please open an issue first to discuss what you would like to change.
+## Architecture Overview
+
+The Factory-Simulator is built using Node.js and simulates a production line in a corrugated plant. It interfaces with a Digital Monitoring Platform to provide real-time data. The main components include:
+- **Simulator Core**: Handles the simulation logic.
+- **Data Interface**: Manages data exchange with the monitoring platform.
+
+For more detailed information, please refer to the documentation in the `docs` folder.
