@@ -1,2 +1,5 @@
-from dcfs.main import *  # noqa: F401,F403
+from dcfs.main import main
 
+
+if __name__ == "__main__":
+    main()
