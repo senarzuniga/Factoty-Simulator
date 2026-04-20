@@ -43,7 +43,7 @@ The profile uses the same required fields as
 Run the simulator and sync machine assets + telemetry into the DEP backend:
 
 ```bash
-python main.py \
+python -m dcfs.main \
   --mode real_time \
   --dep-backend-url http://localhost:8000 \
   --dep-token <DEP_BEARER_TOKEN>

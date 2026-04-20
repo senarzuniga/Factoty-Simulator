@@ -97,7 +97,11 @@ class DEPBridgeClient:
             raise RuntimeError(f"DEP backend unreachable at {self.api_base}: {exc.reason}") from exc
 
     def ensure_assets(self, state) -> Dict[str, str]:
-        assets = self._request("GET", "/data/assets", params={"company_id": self.company_id}) or []
+        assets = self._request("GET", "/data/assets", params={"company_id": self.company_id})
+        if assets is None:
+            assets = []
+        if not isinstance(assets, list):
+            raise RuntimeError("DEP /data/assets response is not a list")
         self.machine_to_asset_id = {
             asset["name"]: asset["id"]
             for asset in assets
@@ -107,6 +111,8 @@ class DEPBridgeClient:
         for payload in build_asset_payloads(state, self.company_id):
             if payload["name"] not in self.machine_to_asset_id:
                 created = self._request("POST", "/data/assets", payload=payload)
+                if not isinstance(created, dict) or "id" not in created:
+                    raise RuntimeError("DEP asset creation response missing asset id")
                 self.machine_to_asset_id[payload["name"]] = created["id"]
 
         return self.machine_to_asset_id
