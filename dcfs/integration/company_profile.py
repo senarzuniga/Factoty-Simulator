@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
 DEFAULT_PROFILE_PATH = Path(__file__).resolve().parents[2] / "config" / "company_profile.json"
+MIN_MATURITY_LEVEL = 1
+MAX_MATURITY_LEVEL = 5
 
 REQUIRED_COMPANY_FIELDS = {
     "id": str,
@@ -47,8 +49,10 @@ def validate_company_profile(profile: Mapping[str, Any]) -> Dict[str, Any]:
                 f"Field '{field}' must be of type {expected}, got {type(value).__name__}"
             )
 
-    if not 1 <= validated["maturity_level"] <= 5:
-        raise CompanyProfileError("Field 'maturity_level' must be between 1 and 5")
+    if not MIN_MATURITY_LEVEL <= validated["maturity_level"] <= MAX_MATURITY_LEVEL:
+        raise CompanyProfileError(
+            f"Field 'maturity_level' must be between {MIN_MATURITY_LEVEL} and {MAX_MATURITY_LEVEL}"
+        )
     if validated["machines"] <= 0:
         raise CompanyProfileError("Field 'machines' must be greater than zero")
 

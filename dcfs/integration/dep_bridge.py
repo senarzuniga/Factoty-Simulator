@@ -111,7 +111,8 @@ class DEPBridgeClient:
 
         return self.machine_to_asset_id
 
-    def sync_step(self, state, _events: List[dict], kpi: Mapping[str, object]) -> None:
+    def sync_step(self, state, events: List[dict], kpi: Mapping[str, object]) -> None:
+        _ = events
         machine_to_asset_id = self.ensure_assets(state)
         telemetry_payloads = build_telemetry_payloads(
             state,
