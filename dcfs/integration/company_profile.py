@@ -55,6 +55,10 @@ def validate_company_profile(profile: Mapping[str, Any]) -> Dict[str, Any]:
         )
     if validated["machines"] <= 0:
         raise CompanyProfileError("Field 'machines' must be greater than zero")
+    if validated["employees"] <= 0:
+        raise CompanyProfileError("Field 'employees' must be greater than zero")
+    if validated["active_contracts"] < 0:
+        raise CompanyProfileError("Field 'active_contracts' must be zero or greater")
 
     return validated
 

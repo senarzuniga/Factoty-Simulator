@@ -40,6 +40,9 @@ def build_telemetry_payloads(
     machine_to_asset_id: Mapping[str, str],
     fallback_oee: Optional[float] = None,
 ) -> List[dict]:
+    if MAX_REFERENCE_SPEED_M_MIN <= 0:
+        raise ValueError("MAX_REFERENCE_SPEED_M_MIN must be greater than zero")
+
     payloads = []
     for machine_id, machine in state.machines.items():
         asset_id = machine_to_asset_id.get(machine_id)
@@ -112,7 +115,8 @@ class DEPBridgeClient:
         return self.machine_to_asset_id
 
     def sync_step(self, state, events: List[dict], kpi: Mapping[str, object]) -> None:
-        _ = events
+        if not events:
+            return
         machine_to_asset_id = self.ensure_assets(state)
         telemetry_payloads = build_telemetry_payloads(
             state,
