@@ -1,0 +1,17 @@
+{
+  "id": "factory_simulator_corrugados",
+  "name": "Factory Simulator Corrugados",
+  "country": "Spain",
+  "sector": "Corrugated Packaging",
+  "machines": 3,
+  "employees": 120,
+  "maturity_level": 2,
+  "annual_revenue_m": 18,
+  "installed_base_age_avg_years": 5.5,
+  "active_contracts": 12,
+  "logo_color": "#1565C0",
+  "factory_simulator": {
+    "plant_id": "PLANT-DSMITH-01",
+    "timezone": "Europe/Madrid"
+  }
+}
