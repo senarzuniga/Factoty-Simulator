@@ -1,5 +1,6 @@
 import asyncio
 import random
+import logging
 from collections import deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -13,6 +14,8 @@ MAX_EVENTS = 2000
 MAX_REQUESTS = 1000
 MIN_BROADCAST_DELAY_SECONDS = 0.5
 MAX_BROADCAST_DELAY_SECONDS = 1.8
+
+logger = logging.getLogger(__name__)
 
 
 def _iso_now() -> str:
@@ -50,30 +53,34 @@ class SimulationRuntime:
 
     async def _run_loop(self) -> None:
         while self.running:
-            await self.simulator.step()
+            try:
+                await self.simulator.step()
 
-            new_events = list(self.simulator.last_events)
-            new_requests = list(self.simulator.last_requests)
-            factory_status = dict(self.simulator.last_factory_status)
+                new_events = list(self.simulator.last_events)
+                new_requests = list(self.simulator.last_requests)
+                factory_status = dict(self.simulator.last_factory_status)
 
-            self.events.extend(new_events)
-            self.requests.extend(new_requests)
+                self.events.extend(new_events)
+                self.requests.extend(new_requests)
 
-            if factory_status:
-                await self._broadcast({"type": "FACTORY_STATUS_UPDATE", "payload": factory_status})
-            for event in new_events:
-                await self._broadcast({"type": "NEW_EVENT", "payload": event})
-            for request in new_requests:
-                await self._broadcast({"type": "NEW_REQUEST", "payload": request})
+                if factory_status:
+                    await self._broadcast({"type": "FACTORY_STATUS_UPDATE", "payload": factory_status})
+                for event in new_events:
+                    await self._broadcast({"type": "NEW_EVENT", "payload": event})
+                for request in new_requests:
+                    await self._broadcast({"type": "NEW_REQUEST", "payload": request})
 
-            await asyncio.sleep(random.uniform(MIN_BROADCAST_DELAY_SECONDS, MAX_BROADCAST_DELAY_SECONDS))
+                await asyncio.sleep(random.uniform(MIN_BROADCAST_DELAY_SECONDS, MAX_BROADCAST_DELAY_SECONDS))
+            except Exception as e:
+                logger.error("Error in simulation loop: %s", e)
 
     async def _broadcast(self, message: dict) -> None:
         stale_clients = []
         for client in self.clients:
             try:
                 await client.send_json(message)
-            except Exception:
+            except Exception as e:
+                logger.error("Error broadcasting to client: %s", e)
                 stale_clients.append(client)
         for client in stale_clients:
             self.clients.discard(client)
