@@ -81,9 +81,10 @@ class FactoryState:
             elif status == "IDLE" and random.random() < self.IDLE_TO_RUNNING_PROB:
                 status = "RUNNING"
             elif status == "RUNNING":
-                if random.random() < self.RUNNING_TO_FAILURE_PROB:
+                transition_roll = random.random()
+                if transition_roll < self.RUNNING_TO_FAILURE_PROB:
                     status = "FAILURE"
-                elif random.random() < self.RUNNING_TO_IDLE_PROB:
+                elif transition_roll < (self.RUNNING_TO_FAILURE_PROB + self.RUNNING_TO_IDLE_PROB):
                     status = "IDLE"
 
             machine["status"] = status

@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple
 
 class RequestGenerator:
     DEFAULT_SEVERITY = "MEDIUM"
+    CONSUMABLE_WEAR_THRESHOLD = 0.85
 
     def __init__(self, min_steps_between_same_request: int = 5):
         self.min_steps_between_same_request = min_steps_between_same_request
@@ -72,7 +73,11 @@ class RequestGenerator:
         for machine_id, machine in state.machines.items():
             wear = float(machine.get("wear", 0.0))
             status = machine.get("status", "RUNNING")
-            if wear >= 0.85 and status in {"RUNNING", "IDLE"} and self._can_generate(machine_id, "CONSUMABLE"):
+            if (
+                wear >= self.CONSUMABLE_WEAR_THRESHOLD
+                and status in {"RUNNING", "IDLE"}
+                and self._can_generate(machine_id, "CONSUMABLE")
+            ):
                 generated.append(
                     {
                         "request_id": f"req_{uuid.uuid4().hex}",
