@@ -11,6 +11,14 @@ class FactoryState:
     IDLE_TO_RUNNING_PROB = 0.60
     RUNNING_TO_FAILURE_PROB = 0.02
     RUNNING_TO_IDLE_PROB = 0.05
+    MIN_VIBRATION = 0.2
+    MAX_VIBRATION = 15.0
+    NOMINAL_TEMP = 75.0
+    TEMP_REGULATION_FACTOR = 0.05
+    RUNNING_TEMP_INCREASE = 0.2
+    FAILURE_TEMP_INCREASE = 0.8
+    MIN_TEMP = 30.0
+    MAX_TEMP = 140.0
 
     def __init__(self):
         self.machines: Dict[str, Dict[str, float]] = {
@@ -98,17 +106,16 @@ class FactoryState:
 
             if "vibration" in machine:
                 machine["vibration"] = min(
-                    15.0,
-                    max(0.2, machine["vibration"] + random.uniform(-0.3, 0.3)),
+                    self.MAX_VIBRATION,
+                    max(self.MIN_VIBRATION, machine["vibration"] + random.uniform(-0.3, 0.3)),
                 )
             if "temp" in machine:
-                nominal_temp = 75.0
-                delta = random.uniform(-0.8, 0.8) + (nominal_temp - machine["temp"]) * 0.05
+                delta = random.uniform(-0.8, 0.8) + (self.NOMINAL_TEMP - machine["temp"]) * self.TEMP_REGULATION_FACTOR
                 if machine["status"] == "RUNNING":
-                    delta += 0.2
+                    delta += self.RUNNING_TEMP_INCREASE
                 if machine["status"] == "FAILURE":
-                    delta += 0.8
-                machine["temp"] = min(140.0, max(30.0, machine["temp"] + delta))
+                    delta += self.FAILURE_TEMP_INCREASE
+                machine["temp"] = min(self.MAX_TEMP, max(self.MIN_TEMP, machine["temp"] + delta))
 
     def generate_production(self) -> List[dict]:
         corr = self.machines["CORR-01"]

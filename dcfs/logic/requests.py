@@ -4,6 +4,8 @@ from typing import Dict, List, Tuple
 
 
 class RequestGenerator:
+    DEFAULT_SEVERITY = "MEDIUM"
+
     def __init__(self, min_steps_between_same_request: int = 5):
         self.min_steps_between_same_request = min_steps_between_same_request
         self._last_generated_step: Dict[Tuple[str, str], int] = {}
@@ -30,7 +32,7 @@ class RequestGenerator:
         for event in events:
             event_type = event.get("type")
             machine_id = event.get("machine_id") or event.get("machine") or "plant"
-            severity = str(event.get("severity", "MEDIUM")).upper()
+            severity = str(event.get("severity", self.DEFAULT_SEVERITY)).upper()
 
             if event_type in {"MACHINE_ALERT", "machine.anomaly"}:
                 request_type = "SERVICE"
