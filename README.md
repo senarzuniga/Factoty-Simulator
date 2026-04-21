@@ -40,18 +40,39 @@ The profile uses the same required fields as
 `sector`, `machines`, `employees`, `maturity_level`, `annual_revenue_m`,
 `installed_base_age_avg_years`, `active_contracts`, `logo_color`).
 
-Run the simulator and sync machine assets + telemetry into the DEP backend:
+### Setup Instructions
 
-```bash
-python -m dcfs.main \
-  --mode real_time \
-  --dep-backend-url http://localhost:8000 \
-  --dep-token <DEP_BEARER_TOKEN>
-```
+To configure the Digital Ecosystem Platform connection, follow these steps:
 
-Optional:
+1. **Set Environment Variables:**
+   - `DEP_BACKEND_URL`: The URL of the DEP backend, e.g., `http://localhost:8000`.
+   - `DEP_BEARER_TOKEN`: Your DEP authentication token.
 
-- `--company-profile /absolute/path/to/company_profile.json` to override the default profile.
+2. **Configuration Files:**
+   - Ensure `config/company_profile.json` is correctly filled with your company details.
+
+3. **Command-Line Arguments:**
+   - Run the simulator using the following command:
+     ```bash
+     python -m dcfs.main \
+       --mode real_time \
+       --dep-backend-url $DEP_BACKEND_URL \
+       --dep-token $DEP_BEARER_TOKEN
+     ```
+   - Optional: Use `--company-profile /absolute/path/to/company_profile.json` to specify a custom company profile.
+
+### Running the Simulator in Different Modes
+
+The simulator can be run in various modes as defined in the `.vscode/launch.json` configurations. Ensure you have the correct setup for each mode:
+
+- **Real-Time Mode:**
+  - Use the command provided above to sync machine assets and telemetry in real-time.
+
+- **Batch Mode:**
+  - Modify the `--mode` argument to `batch` for batch processing.
+
+- **Simulation Mode:**
+  - Use `--mode simulation` to run the simulator in a controlled environment for testing purposes.
 
 ## Autonomous real-time factory API
 
