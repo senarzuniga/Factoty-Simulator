@@ -6,6 +6,12 @@ from typing import Dict, List
 class FactoryState:
     """In-memory digital twin state."""
 
+    FAILURE_TO_MAINTENANCE_PROB = 0.20
+    MAINTENANCE_TO_IDLE_PROB = 0.35
+    IDLE_TO_RUNNING_PROB = 0.60
+    RUNNING_TO_FAILURE_PROB = 0.02
+    RUNNING_TO_IDLE_PROB = 0.05
+
     def __init__(self):
         self.machines: Dict[str, Dict[str, float]] = {
             "CORR-01": {
@@ -60,16 +66,16 @@ class FactoryState:
         for machine in self.machines.values():
             status = machine.get("status", "RUNNING")
 
-            if status == "FAILURE" and random.random() < 0.20:
+            if status == "FAILURE" and random.random() < self.FAILURE_TO_MAINTENANCE_PROB:
                 status = "MAINTENANCE"
-            elif status == "MAINTENANCE" and random.random() < 0.35:
+            elif status == "MAINTENANCE" and random.random() < self.MAINTENANCE_TO_IDLE_PROB:
                 status = "IDLE"
-            elif status == "IDLE" and random.random() < 0.60:
+            elif status == "IDLE" and random.random() < self.IDLE_TO_RUNNING_PROB:
                 status = "RUNNING"
             elif status == "RUNNING":
-                if random.random() < 0.02:
+                if random.random() < self.RUNNING_TO_FAILURE_PROB:
                     status = "FAILURE"
-                elif random.random() < 0.05:
+                elif random.random() < self.RUNNING_TO_IDLE_PROB:
                     status = "IDLE"
 
             machine["status"] = status

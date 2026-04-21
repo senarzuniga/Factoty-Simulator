@@ -14,6 +14,8 @@ from dcfs.logic.requests import RequestGenerator
 
 # Callback signature: (state after step, published non-KPI events, computed KPI dict).
 StepCallback = Callable[[FactoryState, List[dict], dict], Any]
+MIN_STEP_VARIANCE_FACTOR = 0.7
+MAX_STEP_VARIANCE_FACTOR = 1.3
 
 
 class FactorySimulator:
@@ -39,7 +41,12 @@ class FactorySimulator:
         while max_steps is None or steps < max_steps:
             await self.step()
             steps += 1
-            await asyncio.sleep(random.uniform(self.time_engine.step_seconds * 0.7, self.time_engine.step_seconds * 1.3))
+            await asyncio.sleep(
+                random.uniform(
+                    self.time_engine.step_seconds * MIN_STEP_VARIANCE_FACTOR,
+                    self.time_engine.step_seconds * MAX_STEP_VARIANCE_FACTOR,
+                )
+            )
 
     async def step(self):
         before_status = {machine_id: machine.get("status", "RUNNING") for machine_id, machine in self.state.machines.items()}

@@ -1,6 +1,7 @@
 import asyncio
 import random
 from collections import deque
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Deque, Dict, List, Optional, Set
 
@@ -10,6 +11,8 @@ from dcfs.engine.simulator import FactorySimulator
 
 MAX_EVENTS = 2000
 MAX_REQUESTS = 1000
+MIN_BROADCAST_DELAY_SECONDS = 0.5
+MAX_BROADCAST_DELAY_SECONDS = 1.8
 
 
 def _iso_now() -> str:
@@ -63,7 +66,7 @@ class SimulationRuntime:
             for request in new_requests:
                 await self._broadcast({"type": "NEW_REQUEST", "payload": request})
 
-            await asyncio.sleep(random.uniform(0.5, 1.8))
+            await asyncio.sleep(random.uniform(MIN_BROADCAST_DELAY_SECONDS, MAX_BROADCAST_DELAY_SECONDS))
 
     async def _broadcast(self, message: dict) -> None:
         stale_clients = []
@@ -117,17 +120,18 @@ class SimulationRuntime:
 
 
 runtime = SimulationRuntime()
-app = FastAPI(title="Factory Simulator API", version="1.0.0")
 
 
-@app.on_event("startup")
-async def _startup() -> None:
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
     await runtime.start()
+    try:
+        yield
+    finally:
+        await runtime.stop()
 
 
-@app.on_event("shutdown")
-async def _shutdown() -> None:
-    await runtime.stop()
+app = FastAPI(title="Factory Simulator API", version="1.0.0", lifespan=lifespan)
 
 
 @app.get("/factory/status")
