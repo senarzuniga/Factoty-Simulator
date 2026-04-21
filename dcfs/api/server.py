@@ -104,6 +104,8 @@ class SimulationRuntime:
     def get_machines(self) -> List[dict]:
         machines: List[dict] = []
         for machine_id, machine in self.simulator.state.machines.items():
+            temp = machine.get("temp")
+            vibration = machine.get("vibration")
             machine_payload = {
                 "machine_id": machine_id,
                 "status": machine.get("status", "RUNNING"),
@@ -111,8 +113,8 @@ class SimulationRuntime:
                 "speed": round(float(machine.get("speed", 0.0)), 2),
                 "efficiency": round(float(machine.get("efficiency", 0.0)), 4),
                 "wear": round(float(machine.get("wear", 0.0)), 4),
-                "temp": round(float(machine["temp"]), 2) if "temp" in machine else None,
-                "vibration": round(float(machine["vibration"]), 2) if "vibration" in machine else None,
+                "temp": round(float(temp), 2) if temp is not None else None,
+                "vibration": round(float(vibration), 2) if vibration is not None else None,
                 "shift": self.simulator.state.shift,
                 "updated_at": self.simulator.state.last_updated_at,
             }

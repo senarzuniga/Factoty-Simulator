@@ -97,14 +97,18 @@ class FactoryState:
                 machine["speed"] = max(0.0, machine.get("speed", 0.0) * random.uniform(0.01, 0.10))
 
             if "vibration" in machine:
-                machine["vibration"] = max(0.0, machine["vibration"] + random.uniform(-0.2, 0.35))
+                machine["vibration"] = min(
+                    15.0,
+                    max(0.2, machine["vibration"] + random.uniform(-0.3, 0.3)),
+                )
             if "temp" in machine:
-                delta = random.uniform(-0.5, 1.2)
+                nominal_temp = 75.0
+                delta = random.uniform(-0.8, 0.8) + (nominal_temp - machine["temp"]) * 0.05
                 if machine["status"] == "RUNNING":
                     delta += 0.2
                 if machine["status"] == "FAILURE":
                     delta += 0.8
-                machine["temp"] += delta
+                machine["temp"] = min(140.0, max(30.0, machine["temp"] + delta))
 
     def generate_production(self) -> List[dict]:
         corr = self.machines["CORR-01"]
