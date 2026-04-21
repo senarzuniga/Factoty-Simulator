@@ -1,9 +1,12 @@
 import json
+import logging
 from typing import Dict, List, Mapping, Optional
 from urllib import error, parse, request
 
 MAX_REFERENCE_SPEED_M_MIN = 300.0
 POWER_PER_SPEED_UNIT_KW = 0.08
+
+logger = logging.getLogger(__name__)
 
 
 def infer_asset_type(machine_id: str) -> str:
@@ -92,39 +95,48 @@ class DEPBridgeClient:
                 return json.loads(raw) if raw else None
         except error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
+            logger.error("DEP request failed (%s %s): %s %s", method, path, exc.code, body)
             raise RuntimeError(f"DEP request failed ({method} {path}): {exc.code} {body}") from exc
         except error.URLError as exc:
+            logger.error("DEP backend unreachable at %s: %s", self.api_base, exc.reason)
             raise RuntimeError(f"DEP backend unreachable at {self.api_base}: {exc.reason}") from exc
 
     def ensure_assets(self, state) -> Dict[str, str]:
-        assets = self._request("GET", "/data/assets", params={"company_id": self.company_id})
-        if assets is None:
-            assets = []
-        if not isinstance(assets, list):
-            raise RuntimeError("DEP /data/assets response is not a list")
-        self.machine_to_asset_id = {
-            asset["name"]: asset["id"]
-            for asset in assets
-            if asset.get("name") and asset.get("id")
-        }
+        try:
+            assets = self._request("GET", "/data/assets", params={"company_id": self.company_id})
+            if assets is None:
+                assets = []
+            if not isinstance(assets, list):
+                raise RuntimeError("DEP /data/assets response is not a list")
+            self.machine_to_asset_id = {
+                asset["name"]: asset["id"]
+                for asset in assets
+                if asset.get("name") and asset.get("id")
+            }
 
-        for payload in build_asset_payloads(state, self.company_id):
-            if payload["name"] not in self.machine_to_asset_id:
-                created = self._request("POST", "/data/assets", payload=payload)
-                if not isinstance(created, dict) or "id" not in created:
-                    raise RuntimeError("DEP asset creation response missing asset id")
-                self.machine_to_asset_id[payload["name"]] = created["id"]
+            for payload in build_asset_payloads(state, self.company_id):
+                if payload["name"] not in self.machine_to_asset_id:
+                    created = self._request("POST", "/data/assets", payload=payload)
+                    if not isinstance(created, dict) or "id" not in created:
+                        raise RuntimeError("DEP asset creation response missing asset id")
+                    self.machine_to_asset_id[payload["name"]] = created["id"]
 
-        return self.machine_to_asset_id
+            return self.machine_to_asset_id
+        except Exception as e:
+            logger.error("Error ensuring assets: %s", e)
+            raise
 
     def sync_step(self, state, events: List[dict], kpi: Mapping[str, object]) -> None:
-        machine_to_asset_id = self.ensure_assets(state)
-        if not events:
-            return
-        telemetry_payloads = build_telemetry_payloads(
-            state,
-            machine_to_asset_id,
-            fallback_oee=float(kpi.get("oee", 0.0)),
-        )
-        for payload in telemetry_payloads:
-            self._request("POST", "/data/telemetry", payload=payload)
+        try:
+            machine_to_asset_id = self.ensure_assets(state)
+            if not events:
+                return
+            telemetry_payloads = build_telemetry_payloads(
+                state,
+                machine_to_asset_id,
+                fallback_oee=float(kpi.get("oee", 0.0)),
+            )
+            for payload in telemetry_payloads:
+                self._request("POST", "/data/telemetry", payload=payload)
+        except Exception as e:
+            logger.error("Error during sync step: %s", e)
