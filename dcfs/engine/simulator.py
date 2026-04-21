@@ -49,12 +49,14 @@ class FactorySimulator:
             )
 
     async def step(self):
-        before_status = {machine_id: machine.get("status", "RUNNING") for machine_id, machine in self.state.machines.items()}
+        status_before_update = {
+            machine_id: machine.get("status", "RUNNING") for machine_id, machine in self.state.machines.items()
+        }
         self.state.update()
         production_events = self.state.generate_production()
         failure_events = self.failures.maybe_fail(self.state)
         kpi = self.kpis.compute(self.state)
-        machine_status_events = self._build_machine_status_events(before_status)
+        machine_status_events = self._build_machine_status_events(status_before_update)
         normalized_events = self._build_normalized_events(production_events, failure_events, machine_status_events, kpi)
         generated_requests = self.requests.generate_from_events(normalized_events, self.state)
         published_events = production_events + failure_events + machine_status_events + normalized_events
