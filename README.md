@@ -52,3 +52,39 @@ python -m dcfs.main \
 Optional:
 
 - `--company-profile /absolute/path/to/company_profile.json` to override the default profile.
+
+## Autonomous real-time factory API
+
+The simulator also exposes an autonomous producer API with no direct coupling to consumers.
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run API:
+
+```bash
+python -m uvicorn dcfs.api.server:app --host 0.0.0.0 --port 9000
+```
+
+Required REST endpoints:
+
+- `GET /factory/status`
+- `GET /factory/machines`
+- `GET /factory/events`
+- `GET /factory/requests`
+- `POST /factory/start`
+- `POST /factory/stop`
+
+Real-time streaming:
+
+- `WS /factory/stream`
+- Outbound message types: `FACTORY_STATUS_UPDATE`, `NEW_EVENT`, `NEW_REQUEST`
+
+Notes:
+
+- Events and requests include unique IDs and ISO8601 timestamps.
+- Request generation is event-driven (failures/status changes/wear), not purely random.
+- Any external platform (including Digital-Ecosystem-Platform) should consume this simulator via REST/WS.
