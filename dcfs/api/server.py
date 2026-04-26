@@ -22,6 +22,18 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _log_error(message: str, error: Exception, context: Optional[dict] = None) -> None:
+    logger.error(
+        "{message} | Error: {error} | Context: {context} | Stack Trace: {stack_trace}",
+        extra={
+            "message": message,
+            "error": str(error),
+            "context": context or {},
+            "stack_trace": logging.format_exc()
+        }
+    )
+
+
 class SimulationRuntime:
     def __init__(self) -> None:
         self.simulator = FactorySimulator(mode="real_time", time_step=1.0)
@@ -72,7 +84,7 @@ class SimulationRuntime:
 
                 await asyncio.sleep(random.uniform(MIN_BROADCAST_DELAY_SECONDS, MAX_BROADCAST_DELAY_SECONDS))
             except Exception as e:
-                logger.error("Error in simulation loop: %s", e)
+                _log_error("Error in simulation loop", e)
 
     async def _broadcast(self, message: dict) -> None:
         stale_clients = []
@@ -80,7 +92,7 @@ class SimulationRuntime:
             try:
                 await client.send_json(message)
             except Exception as e:
-                logger.error("Error broadcasting to client: %s", e)
+                _log_error("Error broadcasting to client", e, context={"message": message})
                 stale_clients.append(client)
         for client in stale_clients:
             self.clients.discard(client)
