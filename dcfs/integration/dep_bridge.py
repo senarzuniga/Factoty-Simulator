@@ -13,6 +13,18 @@ logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
 
 
+def _log_error(message: str, error: Exception, context: Optional[dict] = None) -> None:
+    logger.error(
+        "{message} | Error: {error} | Context: {context} | Stack Trace: {stack_trace}",
+        extra={
+            "message": message,
+            "error": str(error),
+            "context": context or {},
+            "stack_trace": logging.format_exc()
+        }
+    )
+
+
 def infer_asset_type(machine_id: str) -> str:
     if "CORR" in machine_id:
         return "Corrugator"
@@ -99,10 +111,10 @@ class DEPBridgeClient:
                 return json.loads(raw) if raw else None
         except error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
-            logger.error("DEP request failed (%s %s): %s %s", method, path, exc.code, body)
+            _log_error("DEP request failed", exc, context={"method": method, "path": path, "code": exc.code, "body": body})
             raise RuntimeError(f"DEP request failed ({method} {path}): {exc.code} {body}") from exc
         except error.URLError as exc:
-            logger.error("DEP backend unreachable at %s: %s", self.api_base, exc.reason)
+            _log_error("DEP backend unreachable", exc, context={"api_base": self.api_base, "reason": exc.reason})
             raise RuntimeError(f"DEP backend unreachable at {self.api_base}: {exc.reason}") from exc
 
     def ensure_assets(self, state) -> Dict[str, str]:
@@ -127,7 +139,7 @@ class DEPBridgeClient:
 
             return self.machine_to_asset_id
         except Exception as e:
-            logger.error("Error ensuring assets: %s", e)
+            _log_error("Error ensuring assets", e)
             raise
 
     def sync_step(self, state, events: List[dict], kpi: Mapping[str, object]) -> None:
@@ -143,4 +155,4 @@ class DEPBridgeClient:
             for payload in telemetry_payloads:
                 self._request("POST", "/data/telemetry", payload=payload)
         except Exception as e:
-            logger.error("Error during sync step: %s", e)
+            _log_error("Error during sync step", e)
