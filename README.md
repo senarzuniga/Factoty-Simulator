@@ -74,6 +74,44 @@ The simulator can be run in various modes as defined in the `.vscode/launch.json
 - **Simulation Mode:**
   - Use `--mode simulation` to run the simulator in a controlled environment for testing purposes.
 
+## Integration and Configuration Guide
+
+This section provides detailed instructions for integrating and configuring the Digital Factory Simulator with the Digital Ecosystem Platform.
+
+### Environment Variables
+
+To ensure proper communication with the Digital Ecosystem Platform, set the following environment variables:
+
+- `DEP_BACKEND_URL`: The URL of the DEP backend. Example: `http://localhost:8000`.
+- `DEP_BEARER_TOKEN`: The bearer token for authentication. Obtain this from your DEP administrator.
+
+### Configuration Files
+
+Ensure that the `config/company_profile.json` file is populated with accurate company details. This file should match the structure required by the Digital Ecosystem Platform.
+
+### Command-Line Arguments
+
+To start the simulator, use the following command:
+
+```bash
+python -m dcfs.main \
+  --mode real_time \
+  --dep-backend-url $DEP_BACKEND_URL \
+  --dep-token $DEP_BEARER_TOKEN
+```
+
+You can specify a custom company profile using:
+
+```bash
+--company-profile /absolute/path/to/company_profile.json
+```
+
+### Troubleshooting Tips
+
+- **Connection Errors:** Ensure that `DEP_BACKEND_URL` is correct and that the DEP server is running.
+- **Authentication Issues:** Verify that `DEP_BEARER_TOKEN` is valid and has not expired.
+- **Configuration File Errors:** Double-check the JSON syntax in `config/company_profile.json`.
+
 ## Autonomous real-time factory API
 
 The simulator also exposes an autonomous producer API with no direct coupling to consumers.
