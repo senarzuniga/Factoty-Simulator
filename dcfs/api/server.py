@@ -1,6 +1,7 @@
 import asyncio
 import random
 import logging
+import os
 from collections import deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -15,6 +16,9 @@ MAX_REQUESTS = 1000
 MIN_BROADCAST_DELAY_SECONDS = 0.5
 MAX_BROADCAST_DELAY_SECONDS = 1.8
 
+# Set log level from environment variable or default to INFO
+log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
 
 
