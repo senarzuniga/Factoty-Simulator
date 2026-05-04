@@ -7,7 +7,10 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Deque, Dict, List, Optional, Set
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 
 from dcfs.engine.simulator import FactorySimulator
 
@@ -159,36 +162,46 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Factory Simulator API", version="1.0.0", lifespan=lifespan)
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc: HTTPException):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 @app.get("/factory/status")
 async def get_factory_status() -> Dict[str, object]:
     return runtime.get_status()
 
-
 @app.get("/factory/machines")
 async def get_factory_machines() -> List[dict]:
     return runtime.get_machines()
-
 
 @app.get("/factory/events")
 async def get_factory_events() -> List[dict]:
     return list(runtime.events)
 
-
 @app.get("/factory/requests")
 async def get_factory_requests() -> List[dict]:
     return list(runtime.requests)
-
 
 @app.post("/factory/start")
 async def start_factory() -> Dict[str, object]:
     return await runtime.start()
 
-
 @app.post("/factory/stop")
 async def stop_factory() -> Dict[str, object]:
     return await runtime.stop()
-
 
 @app.websocket("/factory/stream")
 async def stream_factory(websocket: WebSocket) -> None:
