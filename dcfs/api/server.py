@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Deque, Dict, List, Optional, Set
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from pythonjsonlogger import jsonlogger
 
 from dcfs.engine.simulator import FactorySimulator
 
@@ -18,8 +19,16 @@ MAX_BROADCAST_DELAY_SECONDS = 1.8
 
 # Set log level from environment variable or default to INFO
 log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
-logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
+
+# Configure JSON logging
+logHandler = logging.StreamHandler()
+formatter = jsonlogger.JsonFormatter(
+    '%(asctime)s %(name)s %(levelname)s %(message)s %(request_id)s %(user_id)s'
+)
+logHandler.setFormatter(formatter)
+logger.addHandler(logHandler)
+logger.setLevel(log_level)
 
 
 def _iso_now() -> str:
@@ -33,7 +42,9 @@ def _log_error(message: str, error: Exception, context: Optional[dict] = None) -
             "message": message,
             "error": str(error),
             "context": context or {},
-            "stack_trace": logging.format_exc()
+            "stack_trace": logging.format_exc(),
+            "request_id": context.get('request_id') if context else None,
+            "user_id": context.get('user_id') if context else None
         }
     )
 
