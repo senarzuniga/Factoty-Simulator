@@ -1,7 +1,8 @@
 import unittest
+from unittest.mock import patch, MagicMock
 
 from dcfs.engine.factory_state import FactoryState
-from dcfs.integration.dep_bridge import build_asset_payloads, build_telemetry_payloads
+from dcfs.integration.dep_bridge import DEPBridgeClient, build_asset_payloads, build_telemetry_payloads
 
 
 class DEPBridgePayloadTests(unittest.TestCase):
@@ -36,6 +37,18 @@ class DEPBridgePayloadTests(unittest.TestCase):
         self.assertEqual(len(payloads), 1)
         self.assertGreater(payloads[0]["oee"], 0.0)
         self.assertLessEqual(payloads[0]["oee"], 1.0)
+
+    @patch('dcfs.integration.dep_bridge.request.urlopen')
+    def test_dep_bridge_client_request(self, mock_urlopen):
+        mock_response = MagicMock()
+        mock_response.read.return_value = b'{}'
+        mock_urlopen.return_value = mock_response
+
+        client = DEPBridgeClient(base_url='http://example.com', company_profile={'id': '123'})
+        response = client._request('GET', '/data/assets')
+
+        self.assertIsNotNone(response)
+        mock_urlopen.assert_called_once()
 
 
 if __name__ == "__main__":

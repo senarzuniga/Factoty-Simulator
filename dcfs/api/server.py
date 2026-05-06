@@ -1,13 +1,13 @@
 import asyncio
 import random
 import logging
+import os
 from collections import deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Deque, Dict, List, Optional, Set
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
 
 from dcfs.engine.simulator import FactorySimulator
 
@@ -16,11 +16,36 @@ MAX_REQUESTS = 1000
 MIN_BROADCAST_DELAY_SECONDS = 0.5
 MAX_BROADCAST_DELAY_SECONDS = 1.8
 
+# Set log level from environment variable or default to INFO
+log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
 logger = logging.getLogger(__name__)
+
+# Configure JSON logging
+logHandler = logging.StreamHandler()
+formatter = jsonlogger.JsonFormatter(
+    '%(asctime)s %(name)s %(levelname)s %(message)s %(request_id)s %(user_id)s'
+)
+logHandler.setFormatter(formatter)
+logger.addHandler(logHandler)
+logger.setLevel(log_level)
 
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _log_error(message: str, error: Exception, context: Optional[dict] = None) -> None:
+    logger.error(
+        "{message} | Error: {error} | Context: {context} | Stack Trace: {stack_trace}",
+        extra={
+            "message": message,
+            "error": str(error),
+            "context": context or {},
+            "stack_trace": logging.format_exc(),
+            "request_id": context.get('request_id') if context else None,
+            "user_id": context.get('user_id') if context else None
+        }
+    )
 
 
 class SimulationRuntime:
@@ -81,7 +106,7 @@ class SimulationRuntime:
 
                 await asyncio.sleep(random.uniform(MIN_BROADCAST_DELAY_SECONDS, MAX_BROADCAST_DELAY_SECONDS))
             except Exception as e:
-                logger.error("Error in simulation loop: %s", e)
+                _log_error("Error in simulation loop", e)
 
     async def _broadcast(self, message: dict) -> None:
         stale_clients = []
@@ -89,7 +114,7 @@ class SimulationRuntime:
             try:
                 await client.send_json(message)
             except Exception as e:
-                logger.error("Error broadcasting to client: %s", e)
+                _log_error("Error broadcasting to client", e, context={"message": message})
                 stale_clients.append(client)
         for client in stale_clients:
             self.clients.discard(client)
@@ -181,46 +206,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc: HTTPException):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 @app.get("/factory/status", summary="Plant-level status snapshot")
 async def get_factory_status() -> Dict[str, object]:
     return runtime.get_status()
 
 
-@app.get("/factory/machines", summary="All machines with real-time telemetry and OEE")
+@app.get("/factory/machines")
 async def get_factory_machines() -> List[dict]:
     return runtime.get_machines()
 
 
-@app.get("/factory/kpi", summary="KPI summary (OEE, availability, performance, quality per machine)")
-async def get_factory_kpi() -> dict:
-    return runtime.get_kpi()
-
-
-@app.get("/factory/events", summary="Event buffer (last 2000 events)")
+@app.get("/factory/events")
 async def get_factory_events() -> List[dict]:
     return list(runtime.events)
 
 
-@app.get("/factory/requests", summary="Operational request buffer (last 1000 requests)")
+@app.get("/factory/requests")
 async def get_factory_requests() -> List[dict]:
     return list(runtime.requests)
 
 
-@app.get("/factory/inventory", summary="Current consumable inventory levels")
-async def get_factory_inventory() -> dict:
-    return dict(runtime.simulator.state.inventory)
-
-
-@app.post("/factory/start", summary="Start the simulation loop")
+@app.post("/factory/start")
 async def start_factory() -> Dict[str, object]:
     return await runtime.start()
 
 
-@app.post("/factory/stop", summary="Stop the simulation loop")
+@app.post("/factory/stop")
 async def stop_factory() -> Dict[str, object]:
     return await runtime.stop()
-
 
 @app.websocket("/factory/stream")
 async def stream_factory(websocket: WebSocket) -> None:
