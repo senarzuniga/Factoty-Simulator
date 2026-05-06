@@ -3,7 +3,8 @@ import logging
 from typing import Dict, List, Mapping, Optional
 from urllib import error, parse, request
 
-MAX_REFERENCE_SPEED_M_MIN = 300.0
+from dcfs.engine.factory_state import SPEED_REFERENCE
+
 POWER_PER_SPEED_UNIT_KW = 0.08
 
 logger = logging.getLogger(__name__)
@@ -12,11 +13,11 @@ logger = logging.getLogger(__name__)
 def infer_asset_type(machine_id: str) -> str:
     if "CORR" in machine_id:
         return "Corrugator"
-    if machine_id.startswith("FLEXO"):
+    if "FLEXO" in machine_id:
         return "Flexo Printer"
-    if machine_id.startswith("DIECUT"):
+    if "DIECUT" in machine_id:
         return "Die Cutter"
-    if "GLUER" in machine_id:
+    if "GLUER" in machine_id or "FOLDER" in machine_id:
         return "Folder Gluer"
     return "Industrial Machine"
 
@@ -49,9 +50,11 @@ def build_telemetry_payloads(
         if not asset_id:
             continue
 
+        mtype = machine.get("type", "corrugator")
+        ref_speed = SPEED_REFERENCE.get(mtype, 300.0)
         speed = float(machine.get("speed", 0.0))
         health = float(machine.get("health", 0.0))
-        inferred_oee = min(1.0, max(0.0, (speed / MAX_REFERENCE_SPEED_M_MIN) * health))
+        inferred_oee = min(1.0, max(0.0, (speed / ref_speed) * health))
 
         payloads.append(
             {

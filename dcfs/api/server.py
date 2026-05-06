@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Deque, Dict, List, Optional, Set
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 
 from dcfs.engine.simulator import FactorySimulator
 
@@ -31,6 +32,7 @@ class SimulationRuntime:
         self.events: Deque[dict] = deque(maxlen=MAX_EVENTS)
         self.requests: Deque[dict] = deque(maxlen=MAX_REQUESTS)
         self.clients: Set[WebSocket] = set()
+        self._last_kpi: dict = {}
 
     async def start(self) -> Dict[str, object]:
         async with self._lock:
@@ -56,9 +58,16 @@ class SimulationRuntime:
             try:
                 await self.simulator.step()
 
+<<<<<<< Updated upstream
                 new_events = list(self.simulator.last_events)
                 new_requests = list(self.simulator.last_requests)
                 factory_status = dict(self.simulator.last_factory_status)
+=======
+            new_events = list(self.simulator.last_events)
+            new_requests = list(self.simulator.last_requests)
+            factory_status = dict(self.simulator.last_factory_status)
+            self._last_kpi = self.simulator.kpis.compute(self.simulator.state)
+>>>>>>> Stashed changes
 
                 self.events.extend(new_events)
                 self.requests.extend(new_requests)
@@ -95,38 +104,55 @@ class SimulationRuntime:
 
     def get_status(self) -> Dict[str, object]:
         state = self.simulator.state
-        running_machines = sum(1 for machine in state.machines.values() if machine.get("status") == "RUNNING")
+        running = sum(1 for m in state.machines.values() if m.get("status") == "RUNNING")
+        failure = sum(1 for m in state.machines.values() if m.get("status") == "FAILURE")
         return {
             "factory_running": self.running,
             "shift": state.shift,
             "timestamp": _iso_now(),
-            "machines_running": running_machines,
+            "machines_running": running,
+            "machines_failure": failure,
             "machines_total": len(state.machines),
             "wip": state.wip,
             "scrap": state.scrap,
             "energy_kwh": round(state.energy_kwh, 3),
             "total_output": state.total_output,
+            "inventory": dict(state.inventory),
         }
 
     def get_machines(self) -> List[dict]:
+        state = self.simulator.state
+        machine_kpis = self._last_kpi.get("machine_kpis", {})
         machines: List[dict] = []
-        for machine_id, machine in self.simulator.state.machines.items():
-            temp = machine.get("temp")
-            vibration = machine.get("vibration")
-            machine_payload = {
-                "machine_id": machine_id,
-                "status": machine.get("status", "RUNNING"),
-                "health": round(float(machine.get("health", 0.0)), 4),
-                "speed": round(float(machine.get("speed", 0.0)), 2),
-                "efficiency": round(float(machine.get("efficiency", 0.0)), 4),
-                "wear": round(float(machine.get("wear", 0.0)), 4),
-                "temp": round(float(temp), 2) if temp is not None else None,
-                "vibration": round(float(vibration), 2) if vibration is not None else None,
-                "shift": self.simulator.state.shift,
-                "updated_at": self.simulator.state.last_updated_at,
-            }
-            machines.append(machine_payload)
+        for machine_id, machine in state.machines.items():
+            mkpi = machine_kpis.get(machine_id, {})
+            machines.append(
+                {
+                    "machine_id": machine_id,
+                    "machine_type": machine.get("type"),
+                    "status": machine.get("status", "RUNNING"),
+                    "health": round(float(machine.get("health", 0.0)), 4),
+                    "speed": round(float(machine.get("speed", 0.0)), 2),
+                    "speed_min": machine.get("speed_min"),
+                    "speed_max": machine.get("speed_max"),
+                    "efficiency": round(float(machine.get("efficiency", 0.0)), 4),
+                    "wear": round(float(machine.get("wear", 0.0)), 4),
+                    "temp": round(float(machine["temp"]), 2),
+                    "vibration": round(float(machine["vibration"]), 2),
+                    "oee": mkpi.get("oee"),
+                    "availability": mkpi.get("availability"),
+                    "performance": mkpi.get("performance"),
+                    "quality": mkpi.get("quality"),
+                    "shift": state.shift,
+                    "updated_at": state.last_updated_at,
+                }
+            )
         return machines
+
+    def get_kpi(self) -> dict:
+        if self._last_kpi:
+            return self._last_kpi
+        return self.simulator.kpis.compute(self.simulator.state)
 
 
 runtime = SimulationRuntime()
@@ -141,35 +167,57 @@ async def lifespan(_app: FastAPI):
         await runtime.stop()
 
 
-app = FastAPI(title="Factory Simulator API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="Factory Simulator API",
+    description="Autonomous industrial data generation system for corrugated cardboard plant.",
+    version="2.0.0",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-@app.get("/factory/status")
+@app.get("/factory/status", summary="Plant-level status snapshot")
 async def get_factory_status() -> Dict[str, object]:
     return runtime.get_status()
 
 
-@app.get("/factory/machines")
+@app.get("/factory/machines", summary="All machines with real-time telemetry and OEE")
 async def get_factory_machines() -> List[dict]:
     return runtime.get_machines()
 
 
-@app.get("/factory/events")
+@app.get("/factory/kpi", summary="KPI summary (OEE, availability, performance, quality per machine)")
+async def get_factory_kpi() -> dict:
+    return runtime.get_kpi()
+
+
+@app.get("/factory/events", summary="Event buffer (last 2000 events)")
 async def get_factory_events() -> List[dict]:
     return list(runtime.events)
 
 
-@app.get("/factory/requests")
+@app.get("/factory/requests", summary="Operational request buffer (last 1000 requests)")
 async def get_factory_requests() -> List[dict]:
     return list(runtime.requests)
 
 
-@app.post("/factory/start")
+@app.get("/factory/inventory", summary="Current consumable inventory levels")
+async def get_factory_inventory() -> dict:
+    return dict(runtime.simulator.state.inventory)
+
+
+@app.post("/factory/start", summary="Start the simulation loop")
 async def start_factory() -> Dict[str, object]:
     return await runtime.start()
 
 
-@app.post("/factory/stop")
+@app.post("/factory/stop", summary="Stop the simulation loop")
 async def stop_factory() -> Dict[str, object]:
     return await runtime.stop()
 

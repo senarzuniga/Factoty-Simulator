@@ -17,7 +17,7 @@ class DEPBridgePayloadTests(unittest.TestCase):
     def test_build_telemetry_payloads_only_for_registered_assets(self):
         state = FactoryState()
         machine_to_asset_id = {
-            "CORR-01": "asset-1",
+            "BHS-CORR-01": "asset-1",
             "FLEXO-01": "asset-2",
         }
 
@@ -29,7 +29,7 @@ class DEPBridgePayloadTests(unittest.TestCase):
 
     def test_build_telemetry_payloads_infers_oee_without_fallback(self):
         state = FactoryState()
-        machine_to_asset_id = {"CORR-01": "asset-1"}
+        machine_to_asset_id = {"BHS-CORR-01": "asset-1"}
 
         payloads = build_telemetry_payloads(state, machine_to_asset_id)
 

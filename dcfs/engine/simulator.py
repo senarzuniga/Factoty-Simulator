@@ -50,17 +50,20 @@ class FactorySimulator:
 
     async def step(self):
         status_before_update = {
-            machine_id: machine.get("status", "RUNNING") for machine_id, machine in self.state.machines.items()
+            machine_id: machine.get("status", "RUNNING")
+            for machine_id, machine in self.state.machines.items()
         }
         self.state.update()
         production_events = self.state.generate_production()
         failure_events = self.failures.maybe_fail(self.state)
         kpi = self.kpis.compute(self.state)
         machine_status_events = self._build_machine_status_events(status_before_update)
-        normalized_events = self._build_normalized_events(production_events, failure_events, machine_status_events, kpi)
-        generated_requests = self.requests.generate_from_events(normalized_events, self.state)
-        published_events = production_events + failure_events + machine_status_events + normalized_events
+        normalized_events = self._build_normalized_events(
+            production_events, failure_events, machine_status_events, kpi
+        )
+        generated_requests = self.requests.generate_from_events(normalized_events + failure_events, self.state)
 
+        published_events = production_events + failure_events + machine_status_events + normalized_events
         for event in published_events:
             await self.bus.publish(event)
 
@@ -114,12 +117,14 @@ class FactorySimulator:
         now = self._iso_now()
         events: List[dict] = []
 
+        # Machine status changes
         for event in machine_status_events:
             events.append(
                 {
                     "event_id": self._event_id(),
                     "type": "MACHINE_STATUS_CHANGE",
                     "machine_id": event["machine"],
+                    "machine_type": self.state.machines.get(event["machine"], {}).get("type"),
                     "old_status": event["old_status"],
                     "new_status": event["new_status"],
                     "shift": self.state.shift,
@@ -127,6 +132,7 @@ class FactorySimulator:
                 }
             )
 
+        # Production updates for every machine
         for event in production_events:
             if event.get("type") != "production.update":
                 continue
@@ -136,7 +142,8 @@ class FactorySimulator:
                     "event_id": self._event_id(),
                     "type": "PRODUCTION_UPDATE",
                     "machine_id": event.get("machine"),
-                    "output": int(data.get("produced_m2", 0)),
+                    "machine_type": data.get("machine_type"),
+                    "output": int(data.get("output", 0)),
                     "scrap": int(data.get("scrap", 0)),
                     "wip": int(data.get("wip", self.state.wip)),
                     "shift": self.state.shift,
@@ -144,42 +151,82 @@ class FactorySimulator:
                 }
             )
 
+        # Machine anomaly / alert events
         for event in failure_events:
             if event.get("type") == "machine.anomaly":
+                machine_id = event.get("machine", "plant")
+                mdata = event.get("data", {})
                 events.append(
                     {
                         "event_id": self._event_id(),
                         "type": "MACHINE_ALERT",
-                        "machine_id": event.get("machine"),
+                        "machine_id": machine_id,
+                        "machine_type": self.state.machines.get(machine_id, {}).get("type"),
                         "severity": str(event.get("severity", "HIGH")).upper(),
-                        "description": "Machine anomaly detected",
+                        "description": mdata.get("description", "Machine anomaly detected"),
+                        "vibration": mdata.get("vibration"),
+                        "temperature": mdata.get("temperature"),
+                        "risk": mdata.get("risk"),
                         "timestamp": now,
                     }
                 )
-            if event.get("type") == "energy.spike":
+            elif event.get("type") == "energy.spike":
                 events.append(
                     {
                         "event_id": self._event_id(),
                         "type": "MACHINE_ALERT",
                         "machine_id": "plant",
+                        "machine_type": None,
                         "severity": "MEDIUM",
-                        "description": "Energy spike detected",
+                        "description": f"Energy spike detected – boiler gas {event.get('gas_m3', 0)} m³",
+                        "timestamp": now,
+                    }
+                )
+            elif event.get("type") == "wip.congestion":
+                events.append(
+                    {
+                        "event_id": self._event_id(),
+                        "type": "MACHINE_ALERT",
+                        "machine_id": "plant",
+                        "machine_type": None,
+                        "severity": str(event.get("severity", "MEDIUM")).upper(),
+                        "description": f"WIP congestion – buffer at {event.get('value', 0)} m²",
+                        "timestamp": now,
+                    }
+                )
+            elif event.get("type") == "inventory.low":
+                events.append(
+                    {
+                        "event_id": self._event_id(),
+                        "type": "MACHINE_ALERT",
+                        "machine_id": "plant",
+                        "machine_type": None,
+                        "severity": str(event.get("severity", "MEDIUM")).upper(),
+                        "description": (
+                            f"Low inventory: {event.get('item')} at {event.get('level')} "
+                            f"(threshold {event.get('threshold')})"
+                        ),
                         "timestamp": now,
                     }
                 )
 
+        # Always emit a FACTORY_STATUS_UPDATE
         events.append(self._build_factory_status_event(kpi))
         return events
 
     def _build_factory_status_event(self, kpi: dict) -> dict:
-        running = sum(1 for machine in self.state.machines.values() if machine.get("status") == "RUNNING")
+        running = sum(1 for m in self.state.machines.values() if m.get("status") == "RUNNING")
+        failure = sum(1 for m in self.state.machines.values() if m.get("status") == "FAILURE")
         return {
             "event_id": self._event_id(),
             "type": "FACTORY_STATUS_UPDATE",
             "factory_running": True,
             "shift": self.state.shift,
             "machines_running": running,
+            "machines_failure": failure,
             "machines_total": len(self.state.machines),
             "oee": float(kpi.get("oee", 0.0)),
+            "wip": self.state.wip,
+            "energy_kwh": round(self.state.energy_kwh, 3),
             "timestamp": self._iso_now(),
         }
