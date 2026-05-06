@@ -1,5 +1,6 @@
 import json
 import logging
+import logging.config
 import os
 from typing import Dict, List, Mapping, Optional
 from urllib import error, parse, request
@@ -7,9 +8,8 @@ from urllib import error, parse, request
 MAX_REFERENCE_SPEED_M_MIN = 300.0
 POWER_PER_SPEED_UNIT_KW = 0.08
 
-# Set log level from environment variable or default to INFO
-log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
-logging.basicConfig(level=log_level)
+# Load logging configuration from file
+logging.config.fileConfig('logging.conf')
 logger = logging.getLogger(__name__)
 
 
