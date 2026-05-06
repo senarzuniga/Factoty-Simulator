@@ -1,6 +1,7 @@
 import asyncio
 import random
 import logging
+import logging.config
 import os
 from collections import deque
 from contextlib import asynccontextmanager
@@ -19,18 +20,9 @@ MAX_REQUESTS = 1000
 MIN_BROADCAST_DELAY_SECONDS = 0.5
 MAX_BROADCAST_DELAY_SECONDS = 1.8
 
-# Set log level from environment variable or default to INFO
-log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+# Load logging configuration from file
+logging.config.fileConfig('logging.conf')
 logger = logging.getLogger(__name__)
-
-# Configure JSON logging
-logHandler = logging.StreamHandler()
-formatter = jsonlogger.JsonFormatter(
-    '%(asctime)s %(name)s %(levelname)s %(message)s %(request_id)s %(user_id)s'
-)
-logHandler.setFormatter(formatter)
-logger.addHandler(logHandler)
-logger.setLevel(log_level)
 
 
 def _iso_now() -> str:
